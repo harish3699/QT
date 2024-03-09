@@ -1,0 +1,41 @@
+/**
+Purpose: IntegrationUtilities is a helper class for all the integrations.
+Created By : Harish Mondepu
+Date : 9.3.2024
+
+**/
+public class IntegrationUtilities {
+   public static void sendHttpCallout(Map<String,String> accountLinks) {
+        List<Items> accountLinksItems = new List<Items>() ;
+         for(String acL : accountLinks.keySet() ) {
+           Items it= new Items();
+           it.accountLinkId = acL;
+           it.accountId = accountLinks.get(acl);
+           accountLinksItems.add(it);
+        }
+        // Prepare the JSON payload for the HTTP callout
+        String jsonPayload = JSON.serialize(accountLinksItems);
+
+        // Make the HTTP callout
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('https://www.marcbenioff.com/v1/v2/');
+        request.setMethod('POST');
+        request.setHeader('Content-Type', 'application/json');
+        request.setBody(jsonPayload);
+
+        HttpResponse response = new Http().send(request);
+
+        // Handle the response as needed
+        if (response.getStatusCode() == 200) {
+            // Handle success
+        } else {
+            // Handle error
+        }
+    }
+    
+    public class Items {
+        public String accountLinkId;
+        public String accountId;
+    }
+
+}
