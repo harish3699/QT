@@ -1,0 +1,67 @@
+/**
+Purpose: automation which will find the matching accounts based on their color and external Id.
+Created By : Harish Mondepu
+Date : 9.3.2024
+
+**/
+
+
+global class MatchingAccountsBatch implements Database.Batchable<SObject>, Database.AllowsCallouts,Schedulable  {
+    Map<String,String> accountLinksMap = new Map<String,String>();
+    
+    global Database.QueryLocator start(Database.BatchableContext BC) {
+        // Query CustomObject__c records that need to be processed
+        return Database.getQueryLocator([
+            SELECT Id, Color__c, ExternalId__c
+            FROM Account_Link__c
+            WHERE AccountId__c = null and createddate=today
+        ]);
+    }
+
+    global void execute(Database.BatchableContext BC, List<Account_Link__c> scope) {
+        List<Account_Link__c> recordsToUpdate = new List<Account_Link__c>();
+        Map<String, String> itemsMap = new Map<String, String>();
+        
+        for (Account_Link__c customRecord : scope) {
+            itemsMap.put(customRecord.ExternalId__c,customRecord.Color__c);
+        }
+        Map<String,String> accountIDMap = findMatchingAccount(itemsMap);
+        
+        if (accountIDMap != null ) {
+        
+            for (Account_Link__c customRecord : scope) {
+                if(accountIDMap.containsKey(customRecord.ExternalId__c)) {
+                    customRecord.AccountId__c = accountIDMap.get(customRecord.ExternalId__c);
+                    recordsToUpdate.add(customRecord);
+                    accountLinksMap.put(customRecord.id, customRecord.AccountId__c);
+                }
+            }
+        }
+
+        // Update records in bulk
+        if (!recordsToUpdate.isEmpty()) {
+            update recordsToUpdate;
+        }
+    }
+
+    global void finish(Database.BatchableContext BC) {
+        // Perform any post-processing logic if needed
+         
+            IntegrationUtilities.sendHttpCallout(accountLinksMap);
+           
+    }
+
+    private static Map<String,String> findMatchingAccount(Map<String, String> itemsMap) {
+        Map<String,String> accountIDMap = new Map<String,String>();
+        for(Account a : [SELECT Id,ExternalId__c FROM Account WHERE Color__c IN :itemsMap.values() AND ExternalId__c IN : itemsMap.keySet()]){
+            accountIDMap.put(a.ExternalId__c,a.ID);
+        }
+        return accountIDMap;
+    }
+    
+     global void execute(SchedulableContext SC) {
+        // Instantiate the batch class and execute it
+        Database.executeBatch(new MatchingAccountsBatch());
+    }
+
+}
