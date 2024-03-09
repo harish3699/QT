@@ -1,0 +1,9 @@
+public class AccountLinkParser{
+
+	public List<Items> items;
+
+    public class Items {
+		public String color;
+		public String externalId;
+	}
+}
