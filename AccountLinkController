@@ -1,0 +1,38 @@
+/**
+Purpose: AccountLinkController is a Rest API which processes the request.
+Created By : Harish Mondepu
+Date : 9.3.2024
+
+**/	
+@RestResource(urlMapping='/AccountLink/*')
+global class AccountLinkController {
+   
+    @HttpPost
+    global static String handleIncomingData() {
+      RestRequest req = RestContext.request;
+      String jsonString = req.requestBody.toString();
+        
+      AccountLinkParser accountLinkWrapper = (AccountLinkParser)JSON.deserialize(jsonString, AccountLinkParser.class);
+      List<Account_Link__c> accountLinks = new List<Account_Link__c>();
+		for (AccountLinkParser.items item : accountLinkWrapper.items) {
+              Account_Link__c accountLinkRec = new Account_Link__c(
+                    Color__c = item.color,
+                    ExternalId__c = item.externalId
+                );
+               accountLinks.add(accountLinkRec);
+        }
+		if(accountLinks!=null && accountLinks.size()>0) {
+            try{
+                insert accountLinks;
+            }
+            catch (Exception e) {
+                return '400';
+            }
+			
+		}
+
+        return '200';
+    }
+    
+  
+}
